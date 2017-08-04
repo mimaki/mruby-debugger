@@ -19,6 +19,15 @@
 #include "apibreak.h"
 #include "apilist.h"
 
+#ifndef NO_MBED
+  #include "mbedapi.h"
+  #define PRINTF  mbedPrintf
+  #define GETCHAR mbedGetc
+#else /* MBED */
+  #define PRINTF(...) fprintf(stdout, __VA_ARGS__)
+  #define GETCHAR     getchar
+#endif
+
 void mrdb_state_free(mrb_state *);
 
 static mrb_debug_context *_debug_context = NULL;
@@ -81,92 +90,92 @@ usage(const char *name)
   }
 }
 
-static int
-parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
-{
-  char **origargv = argv;
-  static const struct _args args_zero = { 0 };
+// static int
+// parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
+// {
+//   char **origargv = argv;
+//   static const struct _args args_zero = { 0 };
 
-  *args = args_zero;
+//   *args = args_zero;
 
-  for (argc--,argv++; argc > 0; argc--,argv++) {
-    char *item;
-    if (argv[0][0] != '-') break;
+//   for (argc--,argv++; argc > 0; argc--,argv++) {
+//     char *item;
+//     if (argv[0][0] != '-') break;
 
-    item = argv[0] + 1;
-    switch (*item++) {
-    case 'b':
-      args->mrbfile = TRUE;
-      break;
-    case 'd':
-      if (item[0]) {
-        goto append_srcpath;
-      }
-      else if (argc > 1) {
-        argc--; argv++;
-        item = argv[0];
-append_srcpath:
-        if (!args->srcpath) {
-          size_t buflen;
-          char *buf;
+//     item = argv[0] + 1;
+//     switch (*item++) {
+//     case 'b':
+//       args->mrbfile = TRUE;
+//       break;
+//     case 'd':
+//       if (item[0]) {
+//         goto append_srcpath;
+//       }
+//       else if (argc > 1) {
+//         argc--; argv++;
+//         item = argv[0];
+// append_srcpath:
+//         if (!args->srcpath) {
+//           size_t buflen;
+//           char *buf;
 
-          buflen = strlen(item) + 1;
-          buf = (char *)mrb_malloc(mrb, buflen);
-          memcpy(buf, item, buflen);
-          args->srcpath = buf;
-        }
-        else {
-          size_t srcpathlen;
-          size_t itemlen;
+//           buflen = strlen(item) + 1;
+//           buf = (char *)mrb_malloc(mrb, buflen);
+//           memcpy(buf, item, buflen);
+//           args->srcpath = buf;
+//         }
+//         else {
+//           size_t srcpathlen;
+//           size_t itemlen;
 
-          srcpathlen = strlen(args->srcpath);
-          itemlen = strlen(item);
-          args->srcpath =
-            (char *)mrb_realloc(mrb, args->srcpath, srcpathlen + itemlen + 2);
-          args->srcpath[srcpathlen] = '\n';
-          memcpy(args->srcpath + srcpathlen + 1, item, itemlen + 1);
-        }
-      }
-      else {
-        printf("%s: No path specified for -d\n", *origargv);
-        return EXIT_SUCCESS;
-      }
-      break;
-    case '-':
-      if (strcmp((*argv) + 2, "version") == 0) {
-        mrb_show_version(mrb);
-        exit(EXIT_SUCCESS);
-      }
-      else if (strcmp((*argv) + 2, "copyright") == 0) {
-        mrb_show_copyright(mrb);
-        exit(EXIT_SUCCESS);
-      }
-    default:
-      return EXIT_FAILURE;
-    }
-  }
+//           srcpathlen = strlen(args->srcpath);
+//           itemlen = strlen(item);
+//           args->srcpath =
+//             (char *)mrb_realloc(mrb, args->srcpath, srcpathlen + itemlen + 2);
+//           args->srcpath[srcpathlen] = '\n';
+//           memcpy(args->srcpath + srcpathlen + 1, item, itemlen + 1);
+//         }
+//       }
+//       else {
+//         printf("%s: No path specified for -d\n", *origargv);
+//         return EXIT_SUCCESS;
+//       }
+//       break;
+//     case '-':
+//       if (strcmp((*argv) + 2, "version") == 0) {
+//         mrb_show_version(mrb);
+//         exit(EXIT_SUCCESS);
+//       }
+//       else if (strcmp((*argv) + 2, "copyright") == 0) {
+//         mrb_show_copyright(mrb);
+//         exit(EXIT_SUCCESS);
+//       }
+//     default:
+//       return EXIT_FAILURE;
+//     }
+//   }
 
-  if (args->rfp == NULL) {
-    if (*argv == NULL) {
-      printf("%s: Program file not specified.\n", *origargv);
-      return EXIT_FAILURE;
-    }
-    else {
-      args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
-      if (args->rfp == NULL) {
-        printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
-        return EXIT_FAILURE;
-      }
-      args->fname = argv[0];
-      argc--; argv++;
-    }
-  }
-  args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
-  memcpy(args->argv, argv, (argc+1) * sizeof(char*));
-  args->argc = argc;
+//   if (args->rfp == NULL) {
+//     if (*argv == NULL) {
+//       printf("%s: Program file not specified.\n", *origargv);
+//       return EXIT_FAILURE;
+//     }
+//     else {
+//       args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
+//       if (args->rfp == NULL) {
+//         printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
+//         return EXIT_FAILURE;
+//       }
+//       args->fname = argv[0];
+//       argc--; argv++;
+//     }
+//   }
+//   args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
+//   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
+//   args->argc = argc;
 
-  return EXIT_SUCCESS;
-}
+//   return EXIT_SUCCESS;
+// }
 
 static void
 cleanup(mrb_state *mrb, struct _args *args)
@@ -267,7 +276,7 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
   int c;
 
   for (i=0; i<MAX_COMMAND_LINE; i++) {
-    if ((c=getchar()) == EOF || c == '\n') break;
+    if ((c=GETCHAR()) == EOF || c == '\n') break;
     mrdb->command[i] = c;
   }
 
@@ -278,7 +287,7 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
   }
 
   if (i == MAX_COMMAND_LINE) {
-    for ( ; (c=getchar()) != EOF && c !='\n'; i++) ;
+    for ( ; (c=GETCHAR()) != EOF && c !='\n'; i++) ;
   }
 
   if (i > MAX_COMMAND_LINE) {
@@ -652,9 +661,10 @@ mrb_debug_break_hook(mrb_state *mrb, mrb_debug_context *dbg)
 }
 
 int
-debugger_main(int argc, char **argv)
+// debugger_main(int argc, char **argv)
+mrb_debugger(mrb_state *mrb, const char *fname)
 {
-  mrb_state *mrb = mrb_open();
+  // mrb_state *mrb = mrb_open();
   int n = -1;
   struct _args args;
   mrb_value v;
@@ -665,18 +675,27 @@ debugger_main(int argc, char **argv)
 
  l_restart:
 
-  if (mrb == NULL) {
-    fputs("Invalid mrb_state, exiting mruby\n", stderr);
-    return EXIT_FAILURE;
-  }
+  // if (mrb == NULL) {
+  //   fputs("Invalid mrb_state, exiting mruby\n", stderr);
+  //   return EXIT_FAILURE;
+  // }
 
   /* parse command parameters */
-  n = parse_args(mrb, argc, argv, &args);
-  if (n == EXIT_FAILURE || args.rfp == NULL) {
-    cleanup(mrb, &args);
-    usage(argv[0]);
-    return n;
+  // n = parse_args(mrb, argc, argv, &args);
+  // if (n == EXIT_FAILURE || args.rfp == NULL) {
+  //   cleanup(mrb, &args);
+  //   usage(argv[0]);
+  //   return n;
+  // }
+  memset(&args, 0, sizeof(args));
+  args.fname = mrb_malloc(mrb, strlen(fname) + 1);
+  strcpy(args.fname, fname);
+  if (!strstr(fname, ".rb")) {
+    args.mrbfile = TRUE;
   }
+  args.rfp = fopen(args.fname, args.mrbfile ? "rb" : "r");
+  args.srcpath = mrb_malloc(mrb, 4);
+  strcpy(args.srcpath, "/sd");
 
   /* initialize debugger information */
   mrdb = mrdb_state_get(mrb);
