@@ -95,9 +95,9 @@ usage(const char *name)
 // {
 //   char **origargv = argv;
 //   static const struct _args args_zero = { 0 };
-
+//
 //   *args = args_zero;
-
+//
 //   for (argc--,argv++; argc > 0; argc--,argv++) {
 //     char *item;
 //     if (argv[0][0] != '-') break;
@@ -173,7 +173,7 @@ usage(const char *name)
 //   args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
 //   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
 //   args->argc = argc;
-
+//
 //   return EXIT_SUCCESS;
 // }
 
@@ -193,7 +193,7 @@ cleanup(mrb_state *mrb, struct _args *args)
 static mrb_debug_context*
 mrb_debug_context_new(mrb_state *mrb)
 {
-  mrb_debug_context *dbg = mrb_malloc(mrb, sizeof(mrb_debug_context));
+  mrb_debug_context *dbg = (mrb_debug_context*)mrb_malloc(mrb, sizeof(mrb_debug_context));
 
   memset(dbg, 0, sizeof(mrb_debug_context));
 
@@ -232,12 +232,12 @@ mrb_debug_context_free(mrb_state *mrb)
 static mrdb_state*
 mrdb_state_new(mrb_state *mrb)
 {
-  mrdb_state *mrdb = mrb_malloc(mrb, sizeof(mrdb_state));
+  mrdb_state *mrdb = (mrdb_state*)mrb_malloc(mrb, sizeof(mrdb_state));
 
   memset(mrdb, 0, sizeof(mrdb_state));
 
   mrdb->dbg = mrb_debug_context_get(mrb);
-  mrdb->command = mrb_malloc(mrb, MAX_COMMAND_LINE+1);
+  mrdb->command = (char*)mrb_malloc(mrb, MAX_COMMAND_LINE+1);
   mrdb->print_no = 1;
 
   return mrdb;
@@ -575,8 +575,8 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
     dbg->xphase = DBG_PHASE_RUNNING;
   }
 
-  file = mrb_debug_get_filename(irep, (uint32_t)(pc - irep->iseq));
-  line = mrb_debug_get_line(irep, (uint32_t)(pc - irep->iseq));
+  file = mrb_debug_get_filename(irep, pc - irep->iseq);
+  line = mrb_debug_get_line(irep, pc - irep->iseq);
 
   switch (dbg->xm) {
   case DBG_STEP:
